@@ -97,8 +97,15 @@ internal extension UIColor {
 
 internal extension UIColor {
     
-    internal class var textBlack: UIColor { return UIColor(hex6: 0x333333) }
-    internal class var separator: UIColor { return UIColor(hex6: 0xEEEEEE) }
+    /// using for some main title, hex is 0x333333
+    internal class var textBlack:       UIColor        { return #colorLiteral(red: 0.2, green: 0.2, blue: 0.2, alpha: 1) }
+    /// using for some tips, hex is 0x999999
+    internal class var textGray:        UIColor        { return #colorLiteral(red: 0.6, green: 0.6, blue: 0.6, alpha: 1) }
+    
+    /// using for tableView.separtor, hex is 0xDDDDDD
+    internal class var separator:       UIColor        { return #colorLiteral(red: 0.8666666667, green: 0.8666666667, blue: 0.8666666667, alpha: 1) }
+    /// using for bottom view, hex is 0x262E36
+    internal class var darkSlateGray:   UIColor        { return #colorLiteral(red: 0.1490196078, green: 0.1803921569, blue: 0.2117647059, alpha: 1) }
 }
 
 internal extension UIImage {

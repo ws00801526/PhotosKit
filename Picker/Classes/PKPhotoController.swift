@@ -61,7 +61,7 @@ extension PKPhotoController {
 }
 
 extension UIViewController {
-
+    
     @objc func dismissPhotoController() {
         
         if let presenting = presentingViewController { presenting.dismiss(animated: true, completion: nil) }
@@ -113,7 +113,7 @@ class PKPhotoListController : UIViewController {
         navigationItem.title = PKPhotoConfig.localizedString(for: "Photos")
         let cancelTitle = PKPhotoConfig.localizedString(for: "Cancel")
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: cancelTitle, style: .plain, target: self, action: #selector(dismissPhotoController))
-
+        
         if (isAuthorized) {
             view.addSubview(tableView)
             PKPhotoManager.default.fetchAlbums(allowsPickVideo: true) { [unowned self] in
@@ -154,7 +154,7 @@ class PKPhotoListController : UIViewController {
             view.addSubview(button)
         }
     }
-
+    
 }
 
 class PKPhotoAlbumCell : UITableViewCell {
@@ -167,19 +167,26 @@ class PKPhotoAlbumCell : UITableViewCell {
         label.font = UIFont.systemFont(ofSize: 16.0, weight: .medium)
         return label
     }()
-
+    
     lazy var avatarView: UIImageView = {
         let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: PKPhotoConfig.default.albumCellHeight, height: PKPhotoConfig.default.albumCellHeight))
-        imageView.backgroundColor = UIColor.separator
-        imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
+        imageView.contentMode = .center
+        imageView.image = PKPhotoConfig.localizedImage(with: "album_placeholder")
         return imageView
     }()
     
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        accessoryType = .disclosureIndicator
         contentView.addSubview(nameLabel)
         contentView.addSubview(avatarView)
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        avatarView.contentMode = .center
+        avatarView.image = PKPhotoConfig.localizedImage(with: "album_placeholder")
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -195,9 +202,20 @@ extension PKPhotoListController : UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "AlbumCell", for: indexPath) as! PKPhotoAlbumCell
-        cell.nameLabel.text = albums[indexPath.row].name
+        
+        let text = "\(albums[indexPath.row].name)  (\(albums[indexPath.row].count))"
+        let attributed = NSMutableAttributedString(string: text)
+        let range = NSMakeRange(albums[indexPath.row].name.count, text.count - albums[indexPath.row].name.count)
+        attributed.addAttribute(.foregroundColor, value: UIColor.textGray, range: range)
+        attributed.addAttribute(.font, value: UIFont.systemFont(ofSize: 16.0), range: range)
+        cell.nameLabel.attributedText = attributed
+
         guard let asset = albums[indexPath.row].coverAsset() else { return cell }
-        PKPhotoManager.requestThumb(for: asset) { [unowned cell] in cell.avatarView.image = $0 }
+        PKPhotoManager.requestThumb(for: asset) { [weak cell] in
+            guard let _ = cell else { return }
+            cell?.avatarView.image = $0 ?? PKPhotoConfig.localizedImage(with: "album_placeholder")
+            cell?.avatarView.contentMode = $0 == nil ? .center : .scaleAspectFill
+        }
         return cell
     }
     
@@ -211,16 +229,15 @@ extension PKPhotoListController : UITableViewDelegate, UITableViewDataSource {
 }
 
 class PKPhotoThumbCell : UICollectionViewCell {
- 
+    
     lazy var imageView: UIImageView = {
         let imageView = UIImageView(frame:CGRect(origin: .zero, size: PKPhotoConfig.thumbSize()))
         imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        imageView.backgroundColor = UIColor.separator
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         return imageView
     }()
-
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         contentView.addSubview(imageView)
@@ -253,7 +270,7 @@ class PKPhotoCollectionController : UIViewController {
         collectionView.register(PKPhotoThumbCell.self, forCellWithReuseIdentifier: "PhotoThumbCell")
         return collectionView
     }()
-
+    
     lazy var collectionViewLayout: UICollectionViewFlowLayout = {
         let layout = UICollectionViewFlowLayout()
         layout.itemSize = PKPhotoConfig.thumbSize()
@@ -264,7 +281,7 @@ class PKPhotoCollectionController : UIViewController {
     
     lazy var bottomView: UIView = {
         let view = UIView(frame: CGRect(x: 0, y: UIScreen.main.bounds.height - bottomMargin, width: self.view.bounds.width, height: bottomMargin))
-        view.backgroundColor = UIColor(hex6: 0x262E36)
+        view.backgroundColor = UIColor.darkSlateGray
         return view
     }()
     
@@ -278,7 +295,7 @@ class PKPhotoCollectionController : UIViewController {
         navigationItem.title = album.name
         let cancelTitle = PKPhotoConfig.localizedString(for: "Cancel")
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: cancelTitle, style: .plain, target: self, action: #selector(dismissPhotoController))
-
+        
         // prefetch assets
         let maxLength = Int(ceil(UIScreen.main.bounds.height / PKPhotoConfig.thumbSize().height)) * PKPhotoConfig.default.numOfColumn
         let prefetchAssets = Array(album.assets.suffix(maxLength))

@@ -86,4 +86,8 @@ internal extension PKPhotoConfig {
     internal class func localizedString(for key: String, value: String? = nil, table tableName: String? = nil) -> String {
         return PKPhotoConfig.default.languageBundle.localizedString(forKey: key, value: value, table: tableName)
     }
+    
+    internal class func localizedImage(with name:String) -> UIImage? {
+        return UIImage(named: name, in: PKPhotoConfig.default.resourcesBundle, compatibleWith: nil)
+    }
 }
