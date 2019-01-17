@@ -7,11 +7,17 @@
 //
 
 import UIKit
+import PhotosKit
 
 class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+//        let path = Bundle.main.path(forResource: "Picker", ofType: "bundle") ?? ""
+//        let bundle = Bundle(path: path)
+//        PKPhotoConfig.default.lanuageBundle = bundle ?? Bundle.main
+        
         // Do any additional setup after loading the view, typically from a nib.
     }
 
@@ -19,6 +25,11 @@ class ViewController: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
+    
+    @IBAction func presentPhoto(_ sender: Any) {
+        let controller = PKPhotoController(nibName: nil, bundle: nil)
+        present(controller, animated: true, completion: nil)
+    }
+    
 }
 

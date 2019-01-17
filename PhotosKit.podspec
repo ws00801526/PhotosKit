@@ -28,15 +28,22 @@ TODO: Add long description of the pod here.
   s.source           = { :git => 'https://github.com/ws00801526/PhotosKit.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
-  s.ios.deployment_target = '8.0'
+  s.ios.deployment_target = '9.0'
+#  s.source_files = 'PhotosKit/Classes/**/*'
 
-  s.source_files = 'PhotosKit/Classes/**/*'
+  s.subspec 'Picker' do |ss|
+      ss.resource = 'Picker/Assets/**/*'
+      ss.source_files = 'Picker/Classes/**/*'
+  end
   
-  # s.resource_bundles = {
-  #   'PhotosKit' => ['PhotosKit/Assets/*.png']
-  # }
+  # s.subspec 'Tests' do |ss|
+      # ss.source_files = 'Tests/Classes/**/*'
+      # ss.dependency 'Quick', '~> 1.2.0'
+      # ss.dependency 'Nimble', '~> 7.0.2'
+    # ss.requires_app_host = true
+    # end
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
-  # s.frameworks = 'UIKit', 'MapKit'
+   s.frameworks = 'Photos'
   # s.dependency 'AFNetworking', '~> 2.3'
 end
