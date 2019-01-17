@@ -33,11 +33,13 @@ public class PKPhotoConfig {
     
     //MARK: - properties of picking control
     
-    public var allowsPickingVideo  = false
-    public var allowsPickingPhoto  = true
-    public var ignoreEmptyAlbum    = false
-    public var allowsPickingOrigin = true
-    
+    public var allowsPickingVideo       = false
+    public var allowsPickingPhoto       = true
+    public var allowsPickingOrigin      = true
+    public var allowsJumpingSetting     = true
+
+    public var ignoreEmptyAlbum         = false
+
     //MARK: - properties of lanunage and resources
 
     public var preferredLanguage: PKPhotoLanguage = .system {

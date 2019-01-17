@@ -16,30 +16,27 @@ public class PKPhotoController : UINavigationController {
     
     public override func viewDidLoad() {
         super.viewDidLoad()
+        
         navigationBar.isTranslucent = true
         navigationBar.tintColor = UIColor.textBlack
         
-        let color = UIColor(red: 241.0 / 255.0, green: 242.0 / 255.0, blue: 243.0 / 255.0, alpha: 0.8)
+        let color = UIColor(hex6: 0xF0F0F0)
         let backgroundImage = UIImage.image(with: color, size: navigationBar.bounds.size)
         navigationBar.setBackgroundImage(backgroundImage, for: .default)
         navigationBar.shadowImage = UIImage()
         
         view.backgroundColor = UIColor.white
-        self.checkAuthorizationStatus { [unowned self] succ in
-            if succ { self.setupViewControllers() }
-            else { self.showUnauthorizedMessage() }
-        }
+        self.checkAuthorizationStatus { [unowned self] in self.setupViewControllers($0) }
     }
 }
 
 /// some logic of Photos Auth
 extension PKPhotoController {
     
-    func setupViewControllers() {
+    func setupViewControllers(_ isAuthorized: Bool = false) {
         
-        var viewControllers: [UIViewController] = []
-        viewControllers.append(PKPhotoListController(nibName: nil, bundle: nil))
-        if preferredDefaultAlbum { viewControllers.append(PKPhotoCollectionController()) }
+        var viewControllers: [UIViewController] = [PKPhotoListController(isAuthorized)]
+        if isAuthorized, preferredDefaultAlbum { viewControllers.append(PKPhotoCollectionController()) }
         setViewControllers(viewControllers, animated: false)
     }
     
@@ -61,17 +58,6 @@ extension PKPhotoController {
             closure(false)
         }
     }
-    
-    func showUnauthorizedMessage() {
-        
-        let label = UILabel(frame: view.bounds.insetBy(dx: 30.0, dy: 100.0))
-        label.text = "您需要前往设置开启相机配置"
-        label.numberOfLines = 0
-        label.textAlignment = .center
-        label.font = UIFont.systemFont(ofSize: 16.0)
-        label.textColor = UIColor.darkText
-        view.addSubview(label)
-    }
 }
 
 extension UIViewController {
@@ -80,6 +66,15 @@ extension UIViewController {
         
         if let presenting = presentingViewController { presenting.dismiss(animated: true, completion: nil) }
         else { dismiss(animated: true, completion: nil) }
+    }
+    
+    @objc func jumpSetting() {
+        guard let URL = URL(string: UIApplicationOpenSettingsURLString) else { return }
+        if #available(iOS 10, *) {
+            UIApplication.shared.open(URL, options: [:], completionHandler: nil)
+        } else {
+            UIApplication.shared.openURL(URL)
+        }
     }
 }
 
@@ -101,27 +96,74 @@ class PKPhotoListController : UIViewController {
         return tableView
     }()
     
+    fileprivate var isAuthorized: Bool = false
+    required init(_ isAuthorized: Bool = false) {
+        self.isAuthorized = isAuthorized
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor.white
+        
+        navigationItem.title = PKPhotoConfig.localizedString(for: "Photos")
         let cancelTitle = PKPhotoConfig.localizedString(for: "Cancel")
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: cancelTitle, style: .plain, target: self, action: #selector(dismissPhotoController))
 
-        view.addSubview(tableView)
-        
-        PKPhotoManager.default.fetchAlbums(allowsPickVideo: true) { [unowned self] in
-            self.albums = $0
-            self.tableView.reloadData()
+        if (isAuthorized) {
+            view.addSubview(tableView)
+            PKPhotoManager.default.fetchAlbums(allowsPickVideo: true) { [unowned self] in
+                self.albums = $0
+                self.tableView.reloadData()
+            }
+        } else {
+            showUnauthorizedMessage()
         }
     }
+    
+    func showUnauthorizedMessage() {
+        
+        let label = UILabel(frame: view.bounds.insetBy(dx: 30.0, dy: 100.0))
+        
+        let text = PKPhotoConfig.localizedString(for: "Allow %@ to access your album in \"Settings -> Privacy -> Photos\"")
+        if let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String {
+            label.text = String(format: text, arguments: [name])
+        } else if let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String {
+            label.text = String(format: text, arguments: [name])
+        } else {
+            label.text = String(format: text, arguments: [""])
+        }
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.font = UIFont.systemFont(ofSize: 16.0)
+        label.textColor = UIColor.darkText
+        view.addSubview(label)
+        
+        if PKPhotoConfig.default.allowsJumpingSetting {
+            
+            guard let settingURL = URL(string: UIApplicationOpenSettingsURLString) else { return }
+            guard UIApplication.shared.canOpenURL(settingURL) else { return }
+            let button = UIButton(type: .system)
+            button.setTitle(PKPhotoConfig.localizedString(for: "Setting"), for: .normal)
+            button.frame = CGRect(x: view.center.x - 50.0, y: view.center.y + 50.0, width: 100.0, height: 60.0)
+            button.addTarget(self, action: #selector(jumpSetting), for: .touchUpInside)
+            view.addSubview(button)
+        }
+    }
+
 }
 
 class PKPhotoAlbumCell : UITableViewCell {
     
     lazy var nameLabel: UILabel = {
-        let label = UILabel(frame: .zero)
-        label.frame = CGRect(x: 100.0, y: 0.0, width: contentView.frame.width - 100.0 - PKPhotoConfig.default.albumCellHeight, height: PKPhotoConfig.default.albumCellHeight)
-        label.textColor = UIColor.darkText
+        let origin = CGPoint(x: PKPhotoConfig.default.albumCellHeight + 10.0, y: 0.0)
+        let size = CGSize(width: contentView.frame.width - 50.0 - PKPhotoConfig.default.albumCellHeight, height: PKPhotoConfig.default.albumCellHeight)
+        let label = UILabel(frame: CGRect(origin: origin, size: size))
+        label.textColor = UIColor.textBlack
         label.font = UIFont.systemFont(ofSize: 16.0, weight: .medium)
         return label
     }()
