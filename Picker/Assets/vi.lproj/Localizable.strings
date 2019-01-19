@@ -1,4 +1,5 @@
 "OK" = "Xác nhận";
+"Send" = "Gửi";
 "Back" = "Quay lại";
 "Done" = "Hoàn thành";
 "Sorry" = "Xin lỗi";
@@ -9,6 +10,7 @@
 "Preview" = "Xem trước";
 "Full image" = "Hình gốc";
 "Processing..." = "Đang xử lý...";
+"Unknown Error Happened" = "Lỗi không xác định đã xảy ra";
 "No Photos or Videos" = "Không có ảnh hoặc video";
 "Can not use camera" = "Máy chụp hình không khả dụng";
 "Synchronizing photos from iCloud" = "Đang đồng bộ hình ảnh từ ICloud";
@@ -21,3 +23,21 @@
 "Select a minimum of %zd photos" = "Chọn ít nhất %zd tấm hình";
 "Allow %@ to access your album in \"Settings -> Privacy -> Photos\"" = "Vui lòng tại mục iPhone \" Cài đặt – quyền riêng tư - Ảnh\" mở quyền cho phép %@ truy cập ảnh.";
 "Please allow %@ to access your camera in \"Settings -> Privacy -> Camera\"" = "Vui lòng tại mục iPhone \" Cài đặt – quyền riêng tư - Ảnh\" mở quyền cho phép %@ truy cập máy ảnh";
+
+
+// Localized title of albums
+
+"Slo-mo"            =       "Slo-mo";
+"Portrait"          =       "Chân dung";
+"Screenshots"       =       "Ảnh chụp màn hình";
+"Time-lapse"        =       "Thời gian trôi đi";
+"Selfies"           =       "Selfies";
+"Recently Added"    =       "Đã thêm gần đây";
+"Panoramas"         =       "Ảnh toàn cảnh";
+"Animated"          =       "Hoạt hình";
+"Long Exposure"     =       "Phơi sáng lâu";
+"Camera Roll"       =       "Camera Roll";
+"Favorites"         =       "Yêu thích";
+"Live Photos"       =       "Ảnh trực tiếp";
+"Videos"            =       "Videos";
+"Bursts"            =       "Bùng nổ";
