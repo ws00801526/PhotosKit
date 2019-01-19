@@ -8,6 +8,7 @@
 //  @abstract   <#class description#>
 
 import UIKit
+import Photos
 
 class PKPhotoThumbStateButton : UIControl {
     
@@ -236,6 +237,10 @@ class PKPhotoCollectionController : UIViewController {
     
     /// create default album while
     fileprivate var album: PKAlbum
+    fileprivate var isBottomAvailable: Bool {
+        let rule = configController().pickingRule
+        return rule != .singlePhoto && rule != .singleVideo
+    }
     
     lazy var collectionView: UICollectionView = {
         
@@ -246,8 +251,9 @@ class PKPhotoCollectionController : UIViewController {
         if #available(iOS 10, *) { collectionView.prefetchDataSource = self }
         collectionView.backgroundColor = UIColor.white
         collectionView.alwaysBounceVertical = true
-        collectionView.scrollIndicatorInsets = UIEdgeInsets(top: 0.0, left: 0.0, bottom: CGFloat(PKPhotoBottomViewHeight), right: 0.0)
-        collectionView.contentInset = UIEdgeInsets(top: 5.0, left: 5.0, bottom: CGFloat(5.0 + PKPhotoBottomViewHeight), right: 5.0)
+        let bottomMargin = isBottomAvailable ? CGFloat(PKPhotoBottomViewHeight) : 0.0
+        collectionView.scrollIndicatorInsets = UIEdgeInsets(top: 0.0, left: 0.0, bottom: bottomMargin, right: 0.0)
+        collectionView.contentInset = UIEdgeInsets(top: 5.0, left: 5.0, bottom: bottomMargin + 5.0, right: 5.0)
         collectionView.register(PKPhotoThumbCell.self, forCellWithReuseIdentifier: "PhotoThumbCell")
         return collectionView
     }()
@@ -270,7 +276,7 @@ class PKPhotoCollectionController : UIViewController {
         super.viewDidLoad()
         
         view.addSubview(collectionView)
-        view.addSubview(bottomView)
+        if isBottomAvailable { view.addSubview(bottomView) }
         view.backgroundColor = UIColor.white
         
         navigationItem.title = album.name
@@ -389,7 +395,7 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
             }
             
             // refresh bottomView UI
-            self.bottomView.setup(numberOfPhotos: self.album.selectedCount)
+            if self.isBottomAvailable { self.bottomView.setup(numberOfPhotos: self.album.selectedCount) }
         }
         return cell
     }
@@ -398,6 +404,8 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
         collectionView.deselectItem(at: indexPath, animated: false)
         let asset = album.assets[indexPath.item]
         let state = self.state(of: asset)
+        
+        guard [PHAssetMediaType.image, PHAssetMediaType.video].contains(asset.asset.mediaType) else { return }
         
         let selected = album.selectedAssets.contains(asset)
         guard (selected || (.normal == state.0)) else { return }
@@ -410,15 +418,18 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
             break
         case .multiplePhotos: fallthrough
         case .multipleVideos: fallthrough
-        case .multiplePhotosVideos:
-            // TODO: will push in preview
-            print("will preview this asset \(asset)")
-            break
+        case .multiplePhotosVideos:  fallthrough
         case .multiplePhotosSingleVideo:
-            if (asset.asset.mediaType == .image) || (asset.asset.mediaType == .video) {
-                print("will preview this asset \(asset)")
-            }
+            let preview = PKPhotoPreviewController(album)
+            navigationController?.pushViewController(preview, animated: true)
             break
+//        case .multiplePhotosSingleVideo:
+//            if (asset.asset.mediaType == .image) || (asset.asset.mediaType == .video) {
+//                print("will preview this asset \(asset)")
+//                let preview = PKPhotoPreviewController(album)
+//                navigationController?.pushViewController(preview, animated: true)
+//            }
+//            break
         }
         
     }
