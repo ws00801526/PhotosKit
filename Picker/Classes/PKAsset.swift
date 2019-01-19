@@ -101,8 +101,8 @@ extension PKAlbum {
         let options = PHFetchOptions()
         let onlyPhotos = (rule == PKPhotoPickingRule.singlePhoto) || (rule == PKPhotoPickingRule.multiplePhotos)
         let onlyVideos = (rule == PKPhotoPickingRule.singleVideo) || (rule == PKPhotoPickingRule.multipleVideos)
-        if onlyPhotos { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.image.rawValue) }
-        if onlyVideos { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.video.rawValue) }
+        if onlyPhotos { options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.image.rawValue) }
+        if onlyVideos { options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.video.rawValue) }
         
         guard let collection = collections.firstObject else { return PKAlbum("", results: nil) }
         let results = PHAsset.fetchAssets(in: collection, options: options)

@@ -43,8 +43,8 @@ public extension PKPhotoManager {
             let options = PHFetchOptions()
             let onlyPhotos = (rule == PKPhotoPickingRule.singlePhoto) || (rule == PKPhotoPickingRule.multiplePhotos)
             let onlyVideos = (rule == PKPhotoPickingRule.singleVideo) || (rule == PKPhotoPickingRule.multipleVideos)
-            if onlyPhotos { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.image.rawValue) }
-            if onlyVideos { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.video.rawValue) }
+            if onlyPhotos { options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.image.rawValue) }
+            if onlyVideos { options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.video.rawValue) }
             
             // get albums from smart collections
             let collections = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
