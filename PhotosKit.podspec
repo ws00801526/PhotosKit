@@ -27,6 +27,7 @@ TODO: Add long description of the pod here.
   s.author           = { 'ws00801526' => '3057600441@qq.com' }
   s.source           = { :git => 'https://github.com/ws00801526/PhotosKit.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
+  s.swift_version    = '4.2'
 
   s.ios.deployment_target = '9.0'
 #  s.source_files = 'PhotosKit/Classes/**/*'
