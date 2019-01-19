@@ -68,6 +68,9 @@ extension PKPhotoController {
         var viewControllers: [UIViewController] = [PKPhotoListController(isAuthorized)]
         if isAuthorized, preferredDefaultAlbum { viewControllers.append(PKPhotoCollectionController()) }
         setViewControllers(viewControllers, animated: false)
+        
+        let backItem = UIBarButtonItem(title: PKPhotoConfig.localizedString(for: "Photos"), style: .plain, target: nil, action: nil)
+        viewControllers.first!.navigationItem.backBarButtonItem = backItem
     }
     
     func checkAuthorizationStatus(closure: @escaping ((Bool) -> Void)) {
@@ -259,10 +262,4 @@ extension PKPhotoListController : UITableViewDelegate, UITableViewDataSource {
         let controller = PKPhotoCollectionController(album)
         navigationController?.pushViewController(controller, animated: true)
     }
-}
-
-
-/// display photo.preview of album
-class PKPhotoPreviewController : UIViewController {
-    
 }
