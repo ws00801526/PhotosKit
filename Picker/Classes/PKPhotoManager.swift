@@ -28,19 +28,23 @@ fileprivate extension PHAssetCollectionSubtype {
 }
 
 public   typealias AlbumClosure = (_ albums: [PKAlbum]) -> Void
-internal typealias ThumbClosure = (_ thumb: UIImage?) -> Void
+public   typealias ThumbClosure = (_ thumb: UIImage?) -> Void
 
 /// Methods for get albums
 public extension PKPhotoManager {
 
-    public func fetchAlbums(allowsPickVideo: Bool = false, allowsPickPhoto: Bool = true, ignoreEmptyAlbum: Bool = false, closure: @escaping AlbumClosure) {
+    public func fetchAlbums(rule: PKPhotoPickingRule? = PKPhotoConfig.default.pickingRule,
+                            ignoreEmptyAlbum ignored: Bool? = false,
+                            closure: @escaping AlbumClosure) {
 
         DispatchQueue.global().async { [unowned self] in
             var albums: [PKAlbum] = []
             
             let options = PHFetchOptions()
-            if allowsPickPhoto == false { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.image.rawValue) }
-            if allowsPickVideo == false { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.video.rawValue) }
+            let onlyPhotos = (rule == PKPhotoPickingRule.singlePhoto) || (rule == PKPhotoPickingRule.multiplePhotos)
+            let onlyVideos = (rule == PKPhotoPickingRule.singleVideo) || (rule == PKPhotoPickingRule.multipleVideos)
+            if onlyPhotos { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.image.rawValue) }
+            if onlyVideos { options.predicate = NSPredicate(format: "mediaType != %d", PHAssetMediaType.video.rawValue) }
             
             // get albums from smart collections
             let collections = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
@@ -50,7 +54,7 @@ public extension PKPhotoManager {
             let otherCollections = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
             albums += self.mapAlbums(from: otherCollections, options: options)
             
-            if ignoreEmptyAlbum == true { albums = albums.filter { $0.count > 0 } }
+            if ignored == true { albums = albums.filter { $0.count > 0 } }
             
             DispatchQueue.main.async { closure(albums) }
         }
@@ -63,7 +67,7 @@ public extension PKPhotoManager {
             let subtype = collection.assetCollectionSubtype
             if subtype != .smartAlbumAllHidden, subtype.rawValue != PHAssetCollectionSubtype.smartAlbumRecentlyDeleted {
                 let results = PHAsset.fetchAssets(in: collection, options: options)
-                let album = PKAlbum(collection.localizedTitle, results: results)
+                let album = PKAlbum(collection.localizedTitle(), results: results)
                 if collection.assetCollectionSubtype == .smartAlbumUserLibrary { albums.insert(album, at: 0) }
                 else { albums.append(album) }
             }

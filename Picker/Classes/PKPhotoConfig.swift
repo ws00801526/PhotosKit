@@ -21,10 +21,36 @@ internal let iPhoneX        =         (Int(SCREEN_WIDTH) == 812)  ||  (Int(SCREE
 internal let iPhoneXR       =         (Int(SCREEN_WIDTH) == 828)  ||  (Int(SCREEN_HEIGHT) == 828)
 internal let iPhoneXSM      =         (Int(SCREEN_WIDTH) == 1242) ||  (Int(SCREEN_HEIGHT) == 1242)
 
-public class PKPhotoConfig {
- 
-    public static let `default` = PKPhotoConfig()
+public enum PKPhotoPickingRule {
+    
+    /// only one photo is pickable, will ignored videos in albums
+    case singlePhoto
+    /// only one video is pickable, will ignored photos in albums
+    case singleVideo
+    /// multiple photos is pickable, , will ignored videos in albums
+    case multiplePhotos
+    /// multiple videos is pickable, , will ignored videos in albums
+    case multipleVideos
+    /// multiple photos & videos is pickable
+    case multiplePhotosVideos
+    /// multiple photos | one video is pickable
+    case multiplePhotosSingleVideo
+}
 
+public enum PKPhotoError: String, Error {
+    
+    case unknown = "Unknown Error Happened"
+    case overMaxCount = "Select a maximum of %zd photos"
+    
+    public var localizedDescription: String {
+        return PKPhotoConfig.localizedString(for: rawValue)
+    }
+}
+
+public class PKPhotoConfig {
+    
+    public static let `default` = PKPhotoConfig()
+    
     //MARK: - properties of collection controller style
     
     public var albumCellHeight: CGFloat = 60.0
@@ -33,17 +59,18 @@ public class PKPhotoConfig {
     
     //MARK: - properties of picking control
     
-    public var allowsPickingVideo       = false
-    public var allowsPickingPhoto       = true
+    public var pickingRule              = PKPhotoPickingRule.multiplePhotosSingleVideo
     public var allowsPickingOrigin      = true
     public var allowsJumpingSetting     = true
-
+    public var preferredDefaultAlbum    = true
     public var ignoreEmptyAlbum         = false
-
+    public var maximumCount             = 9
+    public var minimumCount             = 0
+    
     //MARK: - properties of lanunage and resources
-
+    
     public var preferredLanguage: PKPhotoLanguage = .system {
-
+        
         didSet {
             if case .system = self.preferredLanguage {
                 self.languageBundle = Bundle(for: PKPhotoConfig.self)
@@ -70,7 +97,7 @@ public enum PKPhotoLanguage: String {
 internal extension PKPhotoConfig {
     
     internal class func thumbSize() -> CGSize {
-
+        
         let width = Float(SCREEN_WIDTH) - Float(PKPhotoConfig.default.numOfColumn + 1) * PKPhotoConfig.default.itemSpacing
         let itemWidth = (floor(width / Float(PKPhotoConfig.default.numOfColumn)))
         return CGSize(width: CGFloat(itemWidth), height: CGFloat(itemWidth))

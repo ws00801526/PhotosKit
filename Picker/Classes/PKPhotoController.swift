@@ -12,21 +12,51 @@ import Photos
 
 public class PKPhotoController : UINavigationController {
     
-    var preferredDefaultAlbum: Bool = true
-    
+    public var preferredDefaultAlbum    = PKPhotoConfig.default.preferredDefaultAlbum
+    public var pickingRule              = PKPhotoConfig.default.pickingRule
+    public var allowsPickingOrigin      = PKPhotoConfig.default.allowsPickingOrigin
+    public var ignoreEmptyAlbum         = PKPhotoConfig.default.ignoreEmptyAlbum
+    public var maximumCount             = PKPhotoConfig.default.maximumCount
+    public var minimumCount             = PKPhotoConfig.default.minimumCount
+
     public override func viewDidLoad() {
         super.viewDidLoad()
         
         navigationBar.isTranslucent = true
+        navigationBar.barStyle = .default
         navigationBar.tintColor = UIColor.textBlack
         
         let color = UIColor(hex6: 0xF0F0F0)
-        let backgroundImage = UIImage.image(with: color, size: navigationBar.bounds.size)
+        // should consider status bar height while set background image for navigation bar before iOS10
+        let height = CGFloat((iPhoneXStyle ? 44.0 : 20.0) + 44.0)
+        let backgroundImage = UIImage.image(with: color, size: CGSize(width: SCREEN_WIDTH, height: height))
         navigationBar.setBackgroundImage(backgroundImage, for: .default)
         navigationBar.shadowImage = UIImage()
         
         view.backgroundColor = UIColor.white
         self.checkAuthorizationStatus { [unowned self] in self.setupViewControllers($0) }
+    }
+}
+
+extension UIViewController {
+    
+    func configController() -> PKPhotoController {
+        guard let controller = navigationController as? PKPhotoController else { return PKPhotoController() }
+        return controller
+    }
+}
+
+extension PKPhotoController {
+    func showError(_ error: PKPhotoError) {
+        
+        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .alert)
+        switch error {
+        case .overMaxCount: alert.message = String(format: error.localizedDescription, arguments: [maximumCount])
+        default: alert.message = error.localizedDescription
+        }
+        let action = UIAlertAction(title: PKPhotoConfig.localizedString(for: "OK"), style: .default, handler: nil)
+        alert.addAction(action)
+        showDetailViewController(alert, sender: nil)
     }
 }
 
@@ -69,7 +99,7 @@ extension UIViewController {
     }
     
     @objc func jumpSetting() {
-        guard let URL = URL(string: UIApplicationOpenSettingsURLString) else { return }
+        guard let URL = URL(string: UIApplication.openSettingsURLString) else { return }
         if #available(iOS 10, *) {
             UIApplication.shared.open(URL, options: [:], completionHandler: nil)
         } else {
@@ -91,7 +121,7 @@ class PKPhotoListController : UIViewController {
         tableView.estimatedRowHeight = PKPhotoConfig.default.albumCellHeight
         tableView.separatorStyle = .singleLine
         tableView.separatorColor = UIColor.separator
-        tableView.separatorInset = UIEdgeInsetsMake(0.0, PKPhotoConfig.default.albumCellHeight, 0.0, 0.0)
+        tableView.separatorInset = UIEdgeInsets(top: 0.0, left: PKPhotoConfig.default.albumCellHeight, bottom: 0.0, right: 0.0)
         tableView.register(PKPhotoAlbumCell.self, forCellReuseIdentifier: "AlbumCell")
         return tableView
     }()
@@ -116,7 +146,10 @@ class PKPhotoListController : UIViewController {
         
         if (isAuthorized) {
             view.addSubview(tableView)
-            PKPhotoManager.default.fetchAlbums(allowsPickVideo: true) { [unowned self] in
+            
+            PKPhotoManager.default.fetchAlbums(rule: configController().pickingRule,
+                                               ignoreEmptyAlbum: configController().ignoreEmptyAlbum)
+            {   [unowned self] in
                 self.albums = $0
                 self.tableView.reloadData()
             }
@@ -140,12 +173,12 @@ class PKPhotoListController : UIViewController {
         label.numberOfLines = 0
         label.textAlignment = .center
         label.font = UIFont.systemFont(ofSize: 16.0)
-        label.textColor = UIColor.darkText
+        label.textColor = UIColor.textBlack
         view.addSubview(label)
         
         if PKPhotoConfig.default.allowsJumpingSetting {
             
-            guard let settingURL = URL(string: UIApplicationOpenSettingsURLString) else { return }
+            guard let settingURL = URL(string: UIApplication.openSettingsURLString) else { return }
             guard UIApplication.shared.canOpenURL(settingURL) else { return }
             let button = UIButton(type: .system)
             button.setTitle(PKPhotoConfig.localizedString(for: "Setting"), for: .normal)
@@ -176,7 +209,7 @@ class PKPhotoAlbumCell : UITableViewCell {
         return imageView
     }()
     
-    override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         accessoryType = .disclosureIndicator
         contentView.addSubview(nameLabel)
@@ -209,11 +242,11 @@ extension PKPhotoListController : UITableViewDelegate, UITableViewDataSource {
         attributed.addAttribute(.foregroundColor, value: UIColor.textGray, range: range)
         attributed.addAttribute(.font, value: UIFont.systemFont(ofSize: 16.0), range: range)
         cell.nameLabel.attributedText = attributed
-
+        
         guard let asset = albums[indexPath.row].coverAsset() else { return cell }
-        PKPhotoManager.requestThumb(for: asset) { [weak cell] in
+        cell.avatarView.setAssetThumb(with: asset, placeholder: PKPhotoConfig.localizedImage(with: "album_placeholder"))
+        {   [weak cell] in
             guard let _ = cell else { return }
-            cell?.avatarView.image = $0 ?? PKPhotoConfig.localizedImage(with: "album_placeholder")
             cell?.avatarView.contentMode = $0 == nil ? .center : .scaleAspectFill
         }
         return cell
@@ -225,137 +258,6 @@ extension PKPhotoListController : UITableViewDelegate, UITableViewDataSource {
         let album = albums[indexPath.row]
         let controller = PKPhotoCollectionController(album)
         navigationController?.pushViewController(controller, animated: true)
-    }
-}
-
-class PKPhotoThumbCell : UICollectionViewCell {
-    
-    lazy var imageView: UIImageView = {
-        let imageView = UIImageView(frame:CGRect(origin: .zero, size: PKPhotoConfig.thumbSize()))
-        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        return imageView
-    }()
-    
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        contentView.addSubview(imageView)
-    }
-    
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-
-/// display photo.thumbs of album
-class PKPhotoCollectionController : UIViewController {
-    
-    /// create default album while
-    fileprivate var album: PKAlbum
-    
-    fileprivate let bottomMargin = (CGFloat)(iPhoneXStyle ? (40.0 + 34.0) : 40.0)
-    
-    lazy var collectionView: UICollectionView = {
-        
-        let frame = CGRect(origin: .zero, size: CGSize(width: view.bounds.width, height: view.bounds.height - 45.0))
-        let collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: collectionViewLayout)
-        collectionView.delegate = self
-        collectionView.dataSource = self
-        if #available(iOS 10, *) { collectionView.prefetchDataSource = self }
-        collectionView.backgroundColor = UIColor.white
-        collectionView.alwaysBounceVertical = true
-        collectionView.scrollIndicatorInsets = UIEdgeInsetsMake(0, 0, bottomMargin, 0)
-        collectionView.contentInset = UIEdgeInsets(top: 5.0, left: 5.0, bottom: 5.0 + bottomMargin, right: 5.0)
-        collectionView.register(PKPhotoThumbCell.self, forCellWithReuseIdentifier: "PhotoThumbCell")
-        return collectionView
-    }()
-    
-    lazy var collectionViewLayout: UICollectionViewFlowLayout = {
-        let layout = UICollectionViewFlowLayout()
-        layout.itemSize = PKPhotoConfig.thumbSize()
-        layout.minimumLineSpacing = 5.0
-        layout.minimumInteritemSpacing = 5.0
-        return layout
-    }()
-    
-    lazy var bottomView: UIView = {
-        let view = UIView(frame: CGRect(x: 0, y: UIScreen.main.bounds.height - bottomMargin, width: self.view.bounds.width, height: bottomMargin))
-        view.backgroundColor = UIColor.darkSlateGray
-        return view
-    }()
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        view.addSubview(collectionView)
-        view.addSubview(bottomView)
-        view.backgroundColor = UIColor.white
-        
-        navigationItem.title = album.name
-        let cancelTitle = PKPhotoConfig.localizedString(for: "Cancel")
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: cancelTitle, style: .plain, target: self, action: #selector(dismissPhotoController))
-        
-        // prefetch assets
-        let maxLength = Int(ceil(UIScreen.main.bounds.height / PKPhotoConfig.thumbSize().height)) * PKPhotoConfig.default.numOfColumn
-        let prefetchAssets = Array(album.assets.suffix(maxLength))
-        PKPhotoManager.startCachingImages(for: prefetchAssets)
-        
-        // collection view scroll bottom
-        DispatchQueue.main.async { [unowned self] in
-            // scroll bottom latter in order to collectionView did layouted its subviews
-            guard self.album.assets.count > 0 else { return }
-            let indexPath = IndexPath(item: self.album.assets.count - 1, section: 0)
-            self.collectionView.scrollToItem(at: indexPath, at: .bottom, animated: false)
-        }
-    }
-    
-    deinit {
-        PKPhotoManager.stopCachingImages()
-    }
-    
-    required init(_ album: PKAlbum = PKAlbum.default()) {
-        self.album = album
-        self.album.fetchAssets()
-        super.init(nibName: nil, bundle: nil)
-    }
-    
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-
-@available(iOS 10.0, *)
-extension PKPhotoCollectionController : UICollectionViewDataSourcePrefetching {
-    
-    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let sorted = indexPaths.map { $0.item }.sorted()
-        guard let first = sorted.first else { return }
-        guard let last  = sorted.last  else { return }
-        let assets = album.assets[first...last]
-        PKPhotoManager.startCachingImages(for: Array(assets))
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-        let sorted = indexPaths.map { $0.item }.sorted()
-        guard let first = sorted.first else { return }
-        guard let last  = sorted.last  else { return }
-        let assets = album.assets[first...last]
-        PKPhotoManager.stopCachingImages(for: Array(assets))
-    }
-}
-
-extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return album.assets.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PhotoThumbCell", for: indexPath) as! PKPhotoThumbCell
-        let asset = album.assets[indexPath.row]
-        PKPhotoManager.requestThumb(for: asset) { [weak cell] in cell?.imageView.image = $0 }
-        return cell
     }
 }
 

@@ -105,7 +105,10 @@ internal extension UIColor {
     /// using for tableView.separtor, hex is 0xDDDDDD
     internal class var separator:       UIColor        { return #colorLiteral(red: 0.8666666667, green: 0.8666666667, blue: 0.8666666667, alpha: 1) }
     /// using for bottom view, hex is 0x262E36
-    internal class var darkSlateGray:   UIColor        { return #colorLiteral(red: 0.1490196078, green: 0.1803921569, blue: 0.2117647059, alpha: 1) }
+    internal class var darkSlateGray:   UIColor        { return #colorLiteral(red: 0.1568627451, green: 0.1725490196, blue: 0.2078431373, alpha: 1) }
+    /// using for button.title, hex is 0x22BB22
+    internal class var grassGreen:      UIColor        { return #colorLiteral(red: 0.1529411765, green: 0.6666666667, blue: 0.1568627451, alpha: 1) }
+    
 }
 
 internal extension UIImage {
@@ -121,5 +124,66 @@ internal extension UIImage {
         let image = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return image!
+    }
+}
+
+
+extension TimeInterval {
+    func formatted() -> String {
+        if self <= 0.0 { return "00:00" }
+        let hour    = Int(self / 3600.0)
+        let minutes = Int((self - Double(hour) * 3600) / 60.0)
+        let seconds = Int(self.truncatingRemainder(dividingBy: 60.0).rounded())
+        if hour > 0 { return String(format: "%02d:%02d:%02d", arguments: [hour, minutes, seconds]) }
+        else { return String(format: "%02d:%02d", arguments: [minutes, seconds]) }
+    }
+}
+
+extension UIView {
+    
+    func showOscillatoryAnimation() {
+                
+        let animation = CASpringAnimation(keyPath: "transform.scale")
+        animation.fromValue = 0.5
+        animation.toValue = 1.0
+        animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        animation.duration = 0.5
+        animation.initialVelocity = 8
+        animation.damping = 12
+        layer.add(animation, forKey: nil)
+    }
+}
+
+extension UIImageView {
+    
+    func setAssetThumb(with asset: PKAsset, placeholder: UIImage? = nil, closure: ThumbClosure? = nil) {
+        PKPhotoManager.requestThumb(for: asset) { [weak self] in
+            self?.image = $0 ?? placeholder
+            if let closure = closure { closure($0) }
+        }
+    }
+}
+
+import Photos
+extension PHAssetCollection {
+    
+    func localizedTitle() -> String? {
+        switch self.assetCollectionSubtype {
+        case .smartAlbumAnimated:       return PKPhotoConfig.localizedString(for: "Animated")
+        case .smartAlbumBursts:         return PKPhotoConfig.localizedString(for: "Bursts")
+        case .smartAlbumFavorites:      return PKPhotoConfig.localizedString(for: "Favorites")
+        case .smartAlbumPanoramas:      return PKPhotoConfig.localizedString(for: "Panoramas")
+        case .smartAlbumLivePhotos:     return PKPhotoConfig.localizedString(for: "Live Photos")
+        case .smartAlbumTimelapses:     return PKPhotoConfig.localizedString(for: "Time-lapse")
+        case .smartAlbumDepthEffect:    return PKPhotoConfig.localizedString(for: "Portrait")
+        case .smartAlbumScreenshots:    return PKPhotoConfig.localizedString(for: "Screenshots")
+        case .smartAlbumSlomoVideos:    return PKPhotoConfig.localizedString(for: "Slo-mo")
+        case .smartAlbumUserLibrary:    return PKPhotoConfig.localizedString(for: "Camera Roll")
+        case .smartAlbumLongExposures:  return PKPhotoConfig.localizedString(for: "Long Exposure")
+        case .smartAlbumRecentlyAdded:  return PKPhotoConfig.localizedString(for: "Recently Added")
+        case .smartAlbumSelfPortraits:  return PKPhotoConfig.localizedString(for: "Selfies")
+        case .smartAlbumVideos:         return PKPhotoConfig.localizedString(for: "Videos")
+        default: return self.localizedTitle
+        }
     }
 }
