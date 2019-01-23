@@ -28,7 +28,6 @@ TODO: Add long description of the pod here.
   s.source           = { :git => 'https://github.com/ws00801526/PhotosKit.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
   s.swift_version    = '4.2'
-
   s.ios.deployment_target = '9.0'
 #  s.source_files = 'PhotosKit/Classes/**/*'
 
@@ -37,6 +36,13 @@ TODO: Add long description of the pod here.
       ss.source_files = 'Picker/Classes/**/*'
   end
   
+  s.subspec 'GIF' do |ss|
+      ss.pod_target_xcconfig  = { 'OTHER_SWIFT_FLAGS' => '"-D" "GIF"' }
+      ss.dependency 'Gifu'
+  end
+
+  s.frameworks = 'Photos', 'AVFoundation'
+
   # s.subspec 'Tests' do |ss|
       # ss.source_files = 'Tests/Classes/**/*'
       # ss.dependency 'Quick', '~> 1.2.0'
@@ -45,6 +51,6 @@ TODO: Add long description of the pod here.
     # end
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
-   s.frameworks = 'Photos'
+#   s.user_target_xcconfig  = { 'OTHER_SWIFT_FLAGS' => '"-D" "GIF"' }
   # s.dependency 'AFNetworking', '~> 2.3'
 end

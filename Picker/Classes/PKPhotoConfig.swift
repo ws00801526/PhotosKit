@@ -53,9 +53,10 @@ public class PKPhotoConfig {
     
     //MARK: - properties of collection controller style
     
-    public var albumCellHeight: CGFloat = 60.0
-    public var numOfColumn: Int = 4
-    public var itemSpacing: Float = 5.0
+    public var albumCellHeight          :       CGFloat = 60.0
+    public var numOfColumn              :       Int = 4
+    public var itemSpacing              :       CGFloat = 5.0
+    public var previewItemSpacing       :       CGFloat = 20.0
     
     //MARK: - properties of picking control
     
@@ -98,9 +99,9 @@ internal extension PKPhotoConfig {
     
     internal class func thumbSize() -> CGSize {
         
-        let width = Float(SCREEN_WIDTH) - Float(PKPhotoConfig.default.numOfColumn + 1) * PKPhotoConfig.default.itemSpacing
-        let itemWidth = (floor(width / Float(PKPhotoConfig.default.numOfColumn)))
-        return CGSize(width: CGFloat(itemWidth), height: CGFloat(itemWidth))
+        let width = SCREEN_WIDTH - CGFloat(PKPhotoConfig.default.numOfColumn + 1) * PKPhotoConfig.default.itemSpacing
+        let itemWidth = (floor(width / CGFloat(PKPhotoConfig.default.numOfColumn)))
+        return CGSize(width: itemWidth, height: itemWidth)
     }
     
     internal class func thumbPixelSize() -> CGSize {

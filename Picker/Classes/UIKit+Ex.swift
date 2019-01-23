@@ -156,11 +156,28 @@ extension UIView {
 
 extension UIImageView {
     
-    func setAssetThumb(with asset: PKAsset, placeholder: UIImage? = nil, closure: ThumbClosure? = nil) {
-        PKPhotoManager.requestThumb(for: asset) { [weak self] in
+    func setThumb(with asset: PKAsset, placeholder: UIImage? = nil, closure: ThumbClosure? = nil) {
+        let _ = PKPhotoManager.requestThumb(for: asset) { [weak self] in
             self?.image = $0 ?? placeholder
             if let closure = closure { closure($0) }
         }
+    }
+    
+    func setImage(with asset: PKAsset, placeholder: UIImage? = nil, closure: ThumbClosure? = nil) -> PHImageRequestID {
+        
+        #if GIF
+        if asset.isGIF {
+            image = placeholder
+            return PKPhotoManager.requestImageData(for: asset, progressClosure: { (_, _, _, _) in
+                print("now is in progress, image data should download from network(iCloud)")
+            }, closure: { [weak self] in
+                if let data = $0 { self?.animate(withGIFData: data) }
+            })
+        }
+        
+        #endif
+        
+        return PKPhotoManager.requestImage(for: asset) { [weak self] in self?.image = ($0 ?? placeholder) }
     }
 }
 
@@ -187,3 +204,60 @@ extension PHAssetCollection {
         }
     }
 }
+
+extension UIViewController {
+    
+    @objc func dismissPhotoController() {
+        
+        if let presenting = presentingViewController { presenting.dismiss(animated: true, completion: nil) }
+        else { dismiss(animated: true, completion: nil) }
+    }
+    
+    @objc func popController() {
+        guard let nav = navigationController else { return }
+        guard nav.viewControllers.count >= 2 else { return }
+        nav.popViewController(animated: true)
+    }
+    
+    @objc func jumpSetting() {
+        guard let URL = URL(string: UIApplication.openSettingsURLString) else { return }
+        if #available(iOS 10, *) {
+            UIApplication.shared.open(URL, options: [:], completionHandler: nil)
+        } else {
+            UIApplication.shared.openURL(URL)
+        }
+    }
+}
+
+
+#if GIF
+
+import Gifu
+extension UIImageView: GIFAnimatable {
+    
+    private struct AssociatedKeys {
+        static var Animator = "gifu.animator.key"
+    }
+
+    public var animator: Animator? {
+        get {
+            
+            if let animator = objc_getAssociatedObject(self, &AssociatedKeys.Animator) as? Animator {
+                return animator
+            } else {
+                let animator = Animator(withDelegate: self)
+                self.animator = animator
+                return animator
+            }
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.Animator, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+    
+    override open func display(_ layer: CALayer) {
+        updateImageIfNeeded()
+    }
+}
+
+#endif

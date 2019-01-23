@@ -18,6 +18,7 @@ public class PKPhotoController : UINavigationController {
     public var ignoreEmptyAlbum         = PKPhotoConfig.default.ignoreEmptyAlbum
     public var maximumCount             = PKPhotoConfig.default.maximumCount
     public var minimumCount             = PKPhotoConfig.default.minimumCount
+    public var previewItemSpacing       = PKPhotoConfig.default.previewItemSpacing
 
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,8 +42,20 @@ public class PKPhotoController : UINavigationController {
 extension UIViewController {
     
     func configController() -> PKPhotoController {
-        guard let controller = navigationController as? PKPhotoController else { return PKPhotoController() }
-        return controller
+
+        if let controller = self as? PKPhotoController                         { return controller }
+        if let controller = navigationController as? PKPhotoController         { return controller }
+        return PKPhotoController()
+    }
+
+    /// get pickingRule from configController
+    func pickingRule() -> PKPhotoPickingRule {
+        return configController().pickingRule
+    }
+    
+    /// get maximumCount from configController
+    func maximumCount() -> Int {
+        return configController().maximumCount
     }
 }
 
@@ -93,24 +106,6 @@ extension PKPhotoController {
     }
 }
 
-extension UIViewController {
-    
-    @objc func dismissPhotoController() {
-        
-        if let presenting = presentingViewController { presenting.dismiss(animated: true, completion: nil) }
-        else { dismiss(animated: true, completion: nil) }
-    }
-    
-    @objc func jumpSetting() {
-        guard let URL = URL(string: UIApplication.openSettingsURLString) else { return }
-        if #available(iOS 10, *) {
-            UIApplication.shared.open(URL, options: [:], completionHandler: nil)
-        } else {
-            UIApplication.shared.openURL(URL)
-        }
-    }
-}
-
 /// display albums list
 class PKPhotoListController : UIViewController {
     
@@ -150,8 +145,7 @@ class PKPhotoListController : UIViewController {
         if (isAuthorized) {
             view.addSubview(tableView)
             
-            PKPhotoManager.default.fetchAlbums(rule: configController().pickingRule,
-                                               ignoreEmptyAlbum: configController().ignoreEmptyAlbum)
+            PKPhotoManager.default.fetchAlbums(rule: pickingRule(), ignoreEmptyAlbum: configController().ignoreEmptyAlbum)
             {   [unowned self] in
                 self.albums = $0
                 self.tableView.reloadData()
@@ -164,7 +158,6 @@ class PKPhotoListController : UIViewController {
     func showUnauthorizedMessage() {
         
         let label = UILabel(frame: view.bounds.insetBy(dx: 30.0, dy: 100.0))
-        
         let text = PKPhotoConfig.localizedString(for: "Allow %@ to access your album in \"Settings -> Privacy -> Photos\"")
         if let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String {
             label.text = String(format: text, arguments: [name])
@@ -247,7 +240,7 @@ extension PKPhotoListController : UITableViewDelegate, UITableViewDataSource {
         cell.nameLabel.attributedText = attributed
         
         guard let asset = albums[indexPath.row].coverAsset() else { return cell }
-        cell.avatarView.setAssetThumb(with: asset, placeholder: PKPhotoConfig.localizedImage(with: "album_placeholder"))
+        cell.avatarView.setThumb(with: asset, placeholder: PKPhotoConfig.localizedImage(with: "album_placeholder"))
         {   [weak cell] in
             guard let _ = cell else { return }
             cell?.avatarView.contentMode = $0 == nil ? .center : .scaleAspectFill

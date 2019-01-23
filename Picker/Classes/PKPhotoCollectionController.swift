@@ -38,15 +38,26 @@ class PKPhotoThumbStateButton : UIControl {
         didSet { self.isHidden = !isEnabled }
     }
     
-    override init(frame: CGRect) {
+    required init(frame: CGRect, isLargeStyle: Bool = false) {
         super.init(frame: frame)
         addSubview(stateView)
         addSubview(titleLabel)
         isSelected = false
         
-        let x = bounds.width - stateView.bounds.width - 2.5
-        stateView.frame = CGRect(origin: CGPoint(x: x, y: 2.5), size: stateView.bounds.size)
-        titleLabel.frame = CGRect(origin: CGPoint(x: x, y: 2.5), size: stateView.bounds.size)
+        if isLargeStyle {
+            
+            let center = CGPoint(x: frame.size.width / 2.0, y: frame.size.height / 2.0)
+            stateView.bounds = CGRect(origin: .zero, size: CGSize(width: 25.0, height: 25.0))
+            titleLabel.bounds = CGRect(origin: .zero, size: CGSize(width: 25.0, height: 25.0))
+            stateView.center = center
+            titleLabel.center = center
+            titleLabel.font = UIFont.systemFont(ofSize: 14.0)
+        } else {
+            let x = bounds.width - stateView.bounds.width - 2.5
+            stateView.frame = CGRect(origin: CGPoint(x: x, y: 2.5), size: stateView.bounds.size)
+            titleLabel.frame = CGRect(origin: CGPoint(x: x, y: 2.5), size: stateView.bounds.size)
+            titleLabel.font = UIFont.systemFont(ofSize: 12.0)
+        }
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -92,20 +103,20 @@ class PKPhotoThumbCell : UICollectionViewCell {
         if let closure = closure { closure(self) }
     }
     
-    func setup(serialNumber number: Int = 0, duration: TimeInterval = 0.0) {
+    func setup(serialNumber number: Int = 0, duration: TimeInterval = 0.0, isGIF: Bool = false) {
         if number <= 0 { stateButton.titleLabel.text = "" }
         else { stateButton.titleLabel.text = "\(number)" }
         
-        durationLabel.isHidden = duration <= 0.0
+        durationLabel.isHidden = (duration <= 0.0 && isGIF == false)
         guard durationLabel.isHidden == false else { return }
         
-        let attachment = NSTextAttachment()
-        attachment.image = PKPhotoConfig.localizedImage(with: "photo_list_video")
-        attachment.bounds = CGRect(origin: CGPoint(x: 0.0, y: -1.5), size: attachment.image?.size ?? .zero)
-        let attributed = NSAttributedString.init(attachment: attachment).mutableCopy() as! NSMutableAttributedString
-        attributed.append(NSAttributedString(string: "  "))
-        attributed.append(NSAttributedString(string: duration.formatted()))
-        durationLabel.attributedText = attributed
+        if duration > 0.0 {
+            durationLabel.attributedText = durationAttribuetdString(with: duration)
+        } else if isGIF {
+            durationLabel.attributedText = gifAttribuetdString()
+        } else {
+            durationLabel.isHidden = true
+        }
     }
     
     func setup(state: UIControl.State = .normal, multiple: Bool?) {
@@ -114,11 +125,24 @@ class PKPhotoThumbCell : UICollectionViewCell {
         
         stateButton.isSelected = state == .selected
     
-        if state == .disabled {
-            contentView.layer.addSublayer(disabledLayer)
-        } else {
-            disabledLayer.removeFromSuperlayer()
-        }
+        if state == .disabled { contentView.layer.addSublayer(disabledLayer) }
+        else { disabledLayer.removeFromSuperlayer() }
+    }
+    
+    private func durationAttribuetdString(with duration: TimeInterval = 0.0) -> NSAttributedString {
+        let attachment = NSTextAttachment()
+        attachment.image = PKPhotoConfig.localizedImage(with: "photo_list_video")
+        attachment.bounds = CGRect(origin: CGPoint(x: 0.0, y: -1.5), size: attachment.image?.size ?? .zero)
+        let attributed = NSAttributedString.init(attachment: attachment).mutableCopy() as! NSMutableAttributedString
+        attributed.append(NSAttributedString(string: "  "))
+        attributed.append(NSAttributedString(string: duration.formatted()))
+        return attributed.copy() as! NSAttributedString
+    }
+    
+    private func gifAttribuetdString() -> NSAttributedString {
+        let attributed = NSMutableAttributedString.init(string: "  GIF  ")
+        attributed.addAttribute(.font, value: UIFont.boldSystemFont(ofSize: 12.0), range: NSMakeRange(0, attributed.length))
+        return attributed.copy() as! NSAttributedString
     }
     
     override init(frame: CGRect) {
@@ -138,8 +162,7 @@ class PKPhotoThumbCell : UICollectionViewCell {
     }
 }
 
-fileprivate let PKPhotoBottomViewHeight = 45.0
-fileprivate let PKPhotoBottomViewItemSpacing = 8.0
+internal let PKPhotoBottomViewHeight = 45.0
 fileprivate let bottomMargin = CGFloat(PKPhotoBottomViewHeight + (iPhoneXStyle ? 34.0 : 0.0))
 class PKPhotoBottomView: UIView {
     
@@ -152,23 +175,29 @@ class PKPhotoBottomView: UIView {
     
     required init(_ allowsPickingOrigin: Bool = PKPhotoConfig.default.allowsPickingOrigin, isPreviewing: Bool = false) {
         let frame = CGRect(x: 0, y: UIScreen.main.bounds.height - bottomMargin, width: SCREEN_WIDTH, height: bottomMargin)
-        super.init(frame: frame)
         self.isPreviewing = isPreviewing
-        backgroundColor = UIColor.darkSlateGray
+        super.init(frame: frame)
         if isPreviewing == false { addSubview(previewButton) }
         if allowsPickingOrigin   { addSubview(originButton) }
         addSubview(sendButton)
         
         gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
         gradientLayer.endPoint   = CGPoint(x: 0.5, y: 1.0)
-        gradientLayer.colors = [UIColor(hex6: 0x292e33), UIColor(hex6: 0x282c35), UIColor(hex6: 0x272b33)].map { $0.cgColor }
+        
+        let colors = [UIColor(hex6: 0x292e33), UIColor(hex6: 0x282c35), UIColor(hex6: 0x272b33)]
+        if isPreviewing { gradientLayer.colors = colors.map { $0.withAlphaComponent(0.8) }.map { $0.cgColor } }
+        else { gradientLayer.colors = colors.map { $0.cgColor } }
     }
     
+    fileprivate let isPreviewing: Bool
+
     /// should pick origin photo
-    fileprivate var pickingOrigin: Bool { return self.originButton.isHidden == false && self.originButton.isSelected }
+    internal var pickingOrigin: Bool {
+        set { self.originButton.isSelected = newValue }
+        get { return self.originButton.isHidden == false && self.originButton.isSelected }
+    }
     
-    fileprivate var isPreviewing = false
-    fileprivate func setup(numberOfPhotos number: Int = 0) {
+    func setup(numberOfPhotos number: Int = 0) {
         
         if number <= 0 { self.sendButton.setTitle(PKPhotoConfig.localizedString(for: "OK"), for: .normal) }
         else { self.sendButton.setTitle("\(PKPhotoConfig.localizedString(for: "OK"))(\(number))", for: .normal) }
@@ -226,8 +255,8 @@ class PKPhotoBottomView: UIView {
         button.sizeToFit()
         let width = Double(max((button.bounds.width + 30.0), 60.0))
         let x = (Double(SCREEN_WIDTH) - width - 15.0)
-        let height = PKPhotoBottomViewHeight - PKPhotoBottomViewItemSpacing * 2.0
-        button.frame = CGRect(x: x, y: PKPhotoBottomViewItemSpacing, width: width, height: height)
+        let height = PKPhotoBottomViewHeight - 8.0 * 2.0
+        button.frame = CGRect(x: x, y: 8.0, width: width, height: height)
         return button
     }()
 }
@@ -244,14 +273,13 @@ class PKPhotoCollectionController : UIViewController {
     
     lazy var collectionView: UICollectionView = {
         
-        let frame = CGRect(origin: .zero, size: CGSize(width: view.bounds.width, height: view.bounds.height - 45.0))
+        let bottomMargin = isBottomAvailable ? CGFloat(PKPhotoBottomViewHeight) : 0.0
         let collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: collectionViewLayout)
         collectionView.delegate = self
         collectionView.dataSource = self
         if #available(iOS 10, *) { collectionView.prefetchDataSource = self }
         collectionView.backgroundColor = UIColor.white
         collectionView.alwaysBounceVertical = true
-        let bottomMargin = isBottomAvailable ? CGFloat(PKPhotoBottomViewHeight) : 0.0
         collectionView.scrollIndicatorInsets = UIEdgeInsets(top: 0.0, left: 0.0, bottom: bottomMargin, right: 0.0)
         collectionView.contentInset = UIEdgeInsets(top: 5.0, left: 5.0, bottom: bottomMargin + 5.0, right: 5.0)
         collectionView.register(PKPhotoThumbCell.self, forCellWithReuseIdentifier: "PhotoThumbCell")
@@ -269,6 +297,7 @@ class PKPhotoCollectionController : UIViewController {
     lazy var bottomView: PKPhotoBottomView = {
         let view =  PKPhotoBottomView()
         view.setup(numberOfPhotos: album.selectedCount)
+        view.previewButton.addTarget(self, action: #selector(previewSelectedAssets), for: .touchUpInside)
         return view
     }()
     
@@ -286,7 +315,7 @@ class PKPhotoCollectionController : UIViewController {
         // prefetch assets
         let maxLength = Int(ceil(UIScreen.main.bounds.height / PKPhotoConfig.thumbSize().height)) * PKPhotoConfig.default.numOfColumn
         let prefetchAssets = Array(album.assets.suffix(maxLength))
-        PKPhotoManager.startCachingImages(for: prefetchAssets)
+        PKPhotoManager.startCachingThumbs(for: prefetchAssets)
         
         // collection view scroll bottom
         DispatchQueue.main.async { [unowned self] in
@@ -298,7 +327,7 @@ class PKPhotoCollectionController : UIViewController {
     }
     
     deinit {
-        PKPhotoManager.stopCachingImages()
+        PKPhotoManager.stopCachingThumbs()
     }
     
     required init(_ album: PKAlbum = PKAlbum.default()) {
@@ -310,6 +339,20 @@ class PKPhotoCollectionController : UIViewController {
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // reload data in case of album.selectedAssets changed
+        collectionView.reloadData()
+        if isBottomAvailable { bottomView.setup(numberOfPhotos:album.selectedCount) }
+        if configController().allowsPickingOrigin { bottomView.pickingOrigin = album.pickingOrigin }
+    }
+    
+    @objc func previewSelectedAssets() {
+        album.pickingOrigin = bottomView.pickingOrigin
+        let preview = PKPhotoPreviewController(album: album, preferredSelectedAssets: true)
+        navigationController?.pushViewController(preview, animated: true)
+    }
 }
 
 @available(iOS 10.0, *)
@@ -320,7 +363,7 @@ extension PKPhotoCollectionController : UICollectionViewDataSourcePrefetching {
         guard let first = sorted.first else { return }
         guard let last  = sorted.last  else { return }
         let assets = album.assets[first...last]
-        PKPhotoManager.startCachingImages(for: Array(assets))
+        PKPhotoManager.startCachingThumbs(for: Array(assets))
     }
     
     func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
@@ -328,7 +371,7 @@ extension PKPhotoCollectionController : UICollectionViewDataSourcePrefetching {
         guard let first = sorted.first else { return }
         guard let last  = sorted.last  else { return }
         let assets = album.assets[first...last]
-        PKPhotoManager.stopCachingImages(for: Array(assets))
+        PKPhotoManager.stopCachingThumbs(for: Array(assets))
     }
 }
 
@@ -342,22 +385,22 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PhotoThumbCell", for: indexPath) as! PKPhotoThumbCell
         let asset = album.assets[indexPath.row]
         
+        let selectable = asset.canMultipleSelectable(with: pickingRule())
         if album.selectedAssets.contains(asset), let index = album.selectedAssets.firstIndex(of: asset) {
-            cell.setup(serialNumber: (index + 1), duration: asset.asset.duration)
-            cell.setup(state: .selected, multiple: isMultipleSelectable(of: asset))
+            cell.setup(serialNumber: (index + 1), duration: asset.asset.duration, isGIF: asset.isGIF)
+            cell.setup(state: .selected, multiple: selectable)
         } else {
-            cell.setup(serialNumber: 0, duration: asset.asset.duration)
-            cell.setup(state: state(of: asset).0, multiple: isMultipleSelectable(of: asset))
+            let state = album.state(of: asset, maximumCount: maximumCount(), rule: pickingRule())
+            cell.setup(serialNumber: 0, duration: asset.asset.duration, isGIF: asset.isGIF)
+            cell.setup(state: state.0, multiple: selectable)
         }
 
-        cell.imageView.setAssetThumb(with: asset)
+        cell.imageView.setThumb(with: asset)
         cell.closure = { [unowned self] in
-            
-            
+
             guard let indexPath = self.collectionView.indexPath(for: $0) else { return }
             guard indexPath.item < self.album.assets.count else { return }
             let asset = self.album.assets[indexPath.item]
-            
             
             if self.album.selectedAssets.contains(asset) {
                 // just remove all exists assets and reload UI
@@ -367,7 +410,7 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
             } else {
                 
                 // prevent too mach photo or videos picked
-                let state = self.state(of: asset)
+                let state = self.album.state(of: asset, maximumCount: self.maximumCount(), rule: self.pickingRule())
                 guard case .normal = state.0 else {
                     if let error = state.1 {  self.configController().showError(error) }
                     return
@@ -387,8 +430,8 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
                 $0.stateButton.stateView.showOscillatoryAnimation()
                 
                 // refresh other visiable cells state UI if needed
-                let refreshable = self.album.selectedCount >= self.configController().maximumCount
-                if (refreshable || self.configController().pickingRule == .multiplePhotosSingleVideo) {
+                let refreshable = self.album.selectedCount >= self.maximumCount()
+                if (refreshable || self.pickingRule() == .multiplePhotosSingleVideo) {
                     let indexPaths = self.collectionView.indexPathsForVisibleItems.filter { $0 != indexPath }
                     self.collectionView.reloadItems(at: indexPaths)
                 }
@@ -403,14 +446,14 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: false)
         let asset = album.assets[indexPath.item]
-        let state = self.state(of: asset)
+        let state = album.state(of: asset, maximumCount: maximumCount(), rule: pickingRule())
         
         guard [PHAssetMediaType.image, PHAssetMediaType.video].contains(asset.asset.mediaType) else { return }
         
         let selected = album.selectedAssets.contains(asset)
         guard (selected || (.normal == state.0)) else { return }
 
-        switch configController().pickingRule {
+        switch pickingRule() {
         case .singlePhoto: fallthrough
         case .singleVideo:
             // TODO: just pick it
@@ -420,57 +463,10 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
         case .multipleVideos: fallthrough
         case .multiplePhotosVideos:  fallthrough
         case .multiplePhotosSingleVideo:
-            let preview = PKPhotoPreviewController(album)
+            album.pickingOrigin = bottomView.pickingOrigin
+            let preview = PKPhotoPreviewController(album: album, initialAsset: asset)
             navigationController?.pushViewController(preview, animated: true)
             break
-//        case .multiplePhotosSingleVideo:
-//            if (asset.asset.mediaType == .image) || (asset.asset.mediaType == .video) {
-//                print("will preview this asset \(asset)")
-//                let preview = PKPhotoPreviewController(album)
-//                navigationController?.pushViewController(preview, animated: true)
-//            }
-//            break
         }
-        
-    }
-}
-
-internal typealias PKPhotoState = (UIControl.State, PKPhotoError?)
-extension PKPhotoCollectionController {
-    
-    func isMultipleSelectable(of asset: PKAsset) -> Bool {
-        
-        switch configController().pickingRule {
-        
-        case .singleVideo               : fallthrough
-        case .singlePhoto               : return false
-            
-        case .multipleVideos            : fallthrough
-        case .multiplePhotos            : fallthrough
-        case .multiplePhotosVideos      : return true
-            
-        case .multiplePhotosSingleVideo : return asset.asset.mediaType == .image
-        }
-    }
-    
-    func state(of asset: PKAsset) -> PKPhotoState {
-        var selectable: Bool = false
-        switch configController().pickingRule {
-            
-        case .singleVideo               : fallthrough
-        case .singlePhoto               : selectable = album.selectedCount <= 0
-            
-        case .multipleVideos            : fallthrough
-        case .multiplePhotos            : fallthrough
-        case .multiplePhotosVideos      : selectable = album.selectedCount < configController().maximumCount
-            
-        case .multiplePhotosSingleVideo :
-            if case .video = asset.asset.mediaType {
-                selectable = album.selectedCount <= 0
-            } else if case .image = asset.asset.mediaType {
-                selectable = album.selectedCount < configController().maximumCount
-            }
-        }
-        return (selectable ? .normal : .disabled, selectable ? nil : PKPhotoError.overMaxCount)
     }
 }

@@ -27,8 +27,13 @@ fileprivate extension PHAssetCollectionSubtype {
     static let smartAlbumRecentlyDeleted: Int = 1000000201
 }
 
-public   typealias AlbumClosure = (_ albums: [PKAlbum]) -> Void
-public   typealias ThumbClosure = (_ thumb: UIImage?) -> Void
+
+public   typealias AlbumClosure         = ([PKAlbum]) -> Void
+public   typealias ThumbClosure         = (UIImage?) -> Void
+public   typealias ImageClosure         = (UIImage?) -> Void
+public   typealias ImageDataClosure     = (Data?) -> Void
+public   typealias VideoClosure         = (AVPlayerItem?, [AnyHashable : Any]?) -> Void
+public   typealias PKAssetProgressClosure = PHAssetVideoProgressHandler
 
 /// Methods for get albums
 public extension PKPhotoManager {
@@ -76,15 +81,11 @@ public extension PKPhotoManager {
     }
 }
 
-
-public extension PKPhotoManager {
-    
-}
-
 /// Internal Methods of get thumbs
 
 extension PKPhotoManager {
     
+    fileprivate static let imageManager        = PHCachingImageManager()
     fileprivate static let cachingImageManager = PHCachingImageManager()
     fileprivate static let thumbRequestOptions = PHImageRequestOptions()
     
@@ -96,13 +97,13 @@ extension PKPhotoManager {
         thumbRequestOptions.version = .current
         return thumbRequestOptions
     }
-    
-    internal class func startCachingImages(for assets: [PKAsset]) {
+
+    internal class func startCachingThumbs(for assets: [PKAsset]) {
         guard assets.count > 0 else { return }
         cachingImageManager.startCachingImages(for: assets.map { $0.asset }, targetSize: PKPhotoConfig.thumbPixelSize(), contentMode: .aspectFill, options: defaultThumbOptions())
     }
     
-    internal class func stopCachingImages(for assets: [PKAsset]? = nil) {
+    internal class func stopCachingThumbs(for assets: [PKAsset]? = nil) {
         if let assets = assets, assets.count > 0 {
             cachingImageManager.stopCachingImages(for: assets.map { $0.asset }, targetSize: PKPhotoConfig.thumbPixelSize(), contentMode: .aspectFill, options: defaultThumbOptions())
         } else {
@@ -110,10 +111,105 @@ extension PKPhotoManager {
         }
     }
     
-    internal class func requestThumb(for asset: PKAsset, closure: @escaping ThumbClosure) {
-        cachingImageManager.requestImage(for: asset.asset, targetSize: PKPhotoConfig.thumbPixelSize(), contentMode: .aspectFill, options: defaultThumbOptions()) { (image, _) in
+    internal class func requestThumb(for asset: PKAsset, closure: @escaping ThumbClosure) -> PHImageRequestID {
+        return cachingImageManager.requestImage(for: asset.asset,
+                                                targetSize: PKPhotoConfig.thumbPixelSize(),
+                                                contentMode: .aspectFill,
+                                                options: defaultThumbOptions())
+        {   (image, _) in
             closure(image)
         }
+    }
+    
+    internal class func requestCahcedThumb(for asset: PKAsset) -> UIImage? {
+        
+        let options = defaultThumbOptions()
+        options.isSynchronous = true
+        var ret: UIImage? = nil
+        cachingImageManager.requestImage(for: asset.asset, targetSize: PKPhotoConfig.thumbPixelSize(), contentMode: .aspectFill, options: options) { (image, _) in
+            ret = image
+        }
+        return ret
+    }
+    
+    internal class func cancelRequest(with requestID: PHImageRequestID) {
+        cachingImageManager.cancelImageRequest(requestID)
+    }
+}
+
+/// Internal Methods of get images
+
+internal extension PKPhotoManager {
+    
+    fileprivate class func `defaultImageOptions`(_ progressClosure: PKAssetProgressClosure? = nil) -> PHImageRequestOptions {
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .opportunistic
+        options.isNetworkAccessAllowed = true
+        options.isSynchronous = false
+        options.resizeMode = .exact
+        options.version = .current
+        options.progressHandler = progressClosure
+        return options
+    }
+
+    internal class func startCachingImage(for asset: PKAsset) {
+        
+        let scale = UIScreen.main.scale
+        let size = asset.sizeThatFits().applying(CGAffineTransform.init(scaleX: scale, y: scale))
+        cachingImageManager.startCachingImages(for: [asset.asset], targetSize: size, contentMode: .aspectFill, options: defaultImageOptions())
+    }
+    
+    internal class func stopCachingImage(for asset: PKAsset? = nil) {
+
+        if let asset = asset {
+            let scale = UIScreen.main.scale
+            let size = asset.sizeThatFits().applying(CGAffineTransform.init(scaleX: scale, y: scale))
+            cachingImageManager.stopCachingImages(for: [asset.asset], targetSize: size, contentMode: .aspectFill, options: defaultImageOptions())
+        } else {
+            cachingImageManager.stopCachingImagesForAllAssets()
+        }
+    }
+
+    internal class func requestImage(for asset: PKAsset, progressClosure: PKAssetProgressClosure? = nil, closure: @escaping ImageClosure) -> PHImageRequestID {
+        
+        let scale = UIScreen.main.scale
+        var size = asset.sizeThatFits().applying(CGAffineTransform.init(scaleX: scale, y: scale))
+        if case .video = asset.asset.mediaType { size = PHImageManagerMaximumSize }
+        let options = defaultImageOptions(progressClosure)
+        return cachingImageManager.requestImage(for: asset.asset, targetSize: size, contentMode: .aspectFill, options: options)
+        {   (image, info) in
+            closure(image)
+        }
+    }
+    
+    internal class func requestImageData(for asset: PKAsset, progressClosure: PKAssetProgressClosure? = nil, closure: @escaping ImageDataClosure) -> PHImageRequestID {
+     
+        let options = defaultImageOptions()
+        options.resizeMode      = .none
+        options.deliveryMode    = .highQualityFormat
+        options.progressHandler = progressClosure
+        return imageManager.requestImageData(for: asset.asset, options: nil, resultHandler: { (data, _, _, info) in
+            if let _ = data { closure(data) }
+            else if let URL = info?["PHImageFileURLKey"] as? URL, let data = try? Data(contentsOf: URL) { closure(data) }
+            else { closure(nil) }
+        })
+    }
+}
+
+/// Internal Methods of get video
+
+internal extension PKPhotoManager {
+    
+    internal class func requestVideo(for asset: PKAsset, progressClosure: PKAssetProgressClosure? = nil , closure: @escaping VideoClosure) -> PHImageRequestID {
+        
+        let options = PHVideoRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.progressHandler = progressClosure
+        return imageManager.requestPlayerItem(forVideo: asset.asset, options: options, resultHandler: closure)
+    }
+    
+    internal class func cancelVideoRequest(with requestID: PHImageRequestID) {
+        imageManager.cancelImageRequest(requestID)
     }
 }
 
