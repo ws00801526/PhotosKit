@@ -465,8 +465,26 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
         case .multiplePhotosSingleVideo:
             album.pickingOrigin = bottomView.pickingOrigin
             let preview = PKPhotoPreviewController(album: album, initialAsset: asset)
+            preview.sourceController = self
             navigationController?.pushViewController(preview, animated: true)
             break
         }
+    }
+}
+
+extension PKPhotoCollectionController: PKInteractiveSourceController {
+    
+    func originalView(at indexPath: IndexPath?) -> UIView? {
+        guard let indexPath = indexPath                            else { return nil }
+        guard let cell = collectionView.cellForItem(at: indexPath) else { return nil }
+        return cell
+    }
+    
+    func originalFrame(at indexPath: IndexPath?) -> CGRect? {
+        
+        guard let cell = originalView(at: indexPath)               else { return nil }
+        if let superView = cell.superview { return superView.convert(cell.frame, to: UIApplication.shared.keyWindow) }
+        else if let window = UIApplication.shared.keyWindow { return window.convert(cell.frame, from: nil) }
+        else { return nil }
     }
 }

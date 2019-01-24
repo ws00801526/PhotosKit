@@ -94,7 +94,7 @@ class PKAssetPreviewCell : UICollectionViewCell, PKAssetAnimatable {
     }
     
     func play() { }
-
+    
     func pause() { }
     
     func stop() { }
@@ -114,6 +114,8 @@ class PKAssetPreviewCell : UICollectionViewCell, PKAssetAnimatable {
         
         contentView.addGestureRecognizer(tap)
     }
+    
+    override var canBecomeFirstResponder: Bool { return false }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -257,7 +259,7 @@ class PKPhotoPreviewCell : PKAssetPreviewCell {
     
     lazy var scrollView: UIScrollView = {
         
-        let view = UIScrollView(frame: CGRect(x: 0, y: 0, width: contentView.bounds.width - 20.0, height: contentView.bounds.height))
+        let view = UIScrollView(frame: contentView.bounds)
         view.bouncesZoom = true
         view.maximumZoomScale = 3.0
         view.minimumZoomScale = 1.0
@@ -266,9 +268,6 @@ class PKPhotoPreviewCell : PKAssetPreviewCell {
         view.showsHorizontalScrollIndicator = false
         view.showsVerticalScrollIndicator = false
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        view.delaysContentTouches = true
-        view.canCancelContentTouches = true
-        //        view.alwaysBounceVertical = true
         view.delegate = self
         return view
     }()
@@ -479,17 +478,24 @@ class PKPhotoPreviewController : UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        navigationController?.isNavigationBarHidden = true
+        
         view.addSubview(collectionView)
         view.addSubview(bottomView)
         view.addSubview(topView)
         
         refreshInitialAssetUI()
         scrollToInitialAssetIfNeeded()
+        
+        configController().verticalTransition.wire(to: self, operation: .pop)
     }
+    
+    @objc
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: animated)
+        //        navigationController?.setNavigationBarHidden(true, animated: animated)
         if configController().allowsPickingOrigin { bottomView.pickingOrigin = album.pickingOrigin }
     }
     
@@ -500,6 +506,98 @@ class PKPhotoPreviewController : UIViewController {
     }
     
     override var prefersStatusBarHidden: Bool { return true }
+    
+
+    internal var sourceController: PKInteractiveSourceController?
+}
+
+extension PKPhotoPreviewController: PKInteractiveController {
+
+    var snapshot: UIImage? {
+        
+        let width = (SCREEN_WIDTH + configController().previewItemSpacing)
+        // plus extra width / 2.0 to calculate correct index
+        let item = Int(floor((collectionView.contentOffset.x + width / 2.0) / width))
+        let indexPath = IndexPath(item: item, section: 0)
+        if let cell = collectionView.cellForItem(at: indexPath) as? PKAssetPreviewCell {
+            return cell.imageView.image
+        } else {
+            UIGraphicsBeginImageContextWithOptions(view.bounds.size, true, UIScreen.main.scale)
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+            let image = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            return image
+        }
+    }
+    
+    var snapshotRect: CGRect? {
+        
+        let width = (SCREEN_WIDTH + configController().previewItemSpacing)
+        // plus extra width / 2.0 to calculate correct index
+        let item = Int(floor((collectionView.contentOffset.x + width / 2.0) / width))
+        let indexPath = IndexPath(item: item, section: 0)
+        
+        guard let cell = collectionView.cellForItem(at: indexPath) as? PKAssetPreviewCell else { return nil }
+        if let cell = cell as? PKPhotoPreviewCell {
+            var origin = cell.containerView.frame.origin
+            let contentOffset = cell.scrollView.contentOffset
+            origin = CGPoint(x: origin.x - contentOffset.x, y: origin.y - contentOffset.y)
+            return CGRect(origin: origin, size: cell.containerView.frame.size)
+        } else {
+            return cell.imageView.frame
+        }
+//        guard let cell = collectionView.visibleCells.first as? PKAssetPreviewCell       else { return nil }
+//
+//        if let cell = cell as? PKPhotoPreviewCell {
+//            var origin = cell.containerView.frame.origin
+//            let contentOffset = cell.scrollView.contentOffset
+//            origin = CGPoint(x: origin.x - contentOffset.x, y: origin.y - contentOffset.y)
+//            return CGRect(origin: origin, size: cell.containerView.frame.size)
+//        } else {
+//            return cell.imageView.frame
+//        }
+        
+//        guard let indexPath = collectionView.indexPathsForVisibleItems.first else { return nil }
+//        guard indexPath.item < preferredAssets.count                         else { return nil }
+//        let asset = preferredAssets[indexPath.item]
+//        let size = asset.sizeThatFits()
+//        let origin = CGPoint(x: SCREEN_WIDTH - size.width, y: SCREEN_HEIGHT - size.height).applying(.init(scaleX: 0.5, y: 0.5))
+//        return CGRect(origin: origin, size: size)
+    }
+    
+    internal var originalRect: CGRect? {
+        
+        
+        let width = (SCREEN_WIDTH + configController().previewItemSpacing)
+        // plus extra width / 2.0 to calculate correct index
+        let item = Int(floor((collectionView.contentOffset.x + width / 2.0) / width))
+        let indexPath = IndexPath(item: item, section: 0)
+        return sourceController?.originalFrame(at: indexPath)
+        
+//        guard let indexPath = collectionView.indexPathsForVisibleItems.first else { return nil }
+//        return sourceController?.originalFrame(at: indexPath)
+    }
+
+    var containerView: UIView { return view }
+    
+    func cancelInteraction() {
+        collectionView.isHidden = false
+        UIView.animate(withDuration: 0.3) {
+            self.topView.alpha    = 1.0
+            self.bottomView.alpha = 1.0
+        }
+    }
+    
+    func startInteraction() {
+
+        collectionView.isHidden = true
+        UIView.animate(withDuration: 0.3) {
+            self.topView.alpha    = 0.0
+            self.bottomView.alpha = 0.0
+        }
+    }
+    
+    func finishInteraction() { }
 }
 
 extension PKPhotoPreviewController {
@@ -528,13 +626,13 @@ extension PKPhotoPreviewController {
     
     /// scroll to initial item position
     fileprivate func scrollToInitialAssetIfNeeded() {
-//        DispatchQueue.main.async { [weak self] in
-            // give up delay scroll initialAsset, do it right now in case of display cell twice
-            guard let asset = self.initialAsset                          else { return }
-            guard let item  = self.preferredAssets.firstIndex(of: asset) else { return }
-            let indexPath = IndexPath(item: item, section: 0)
-            self.collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
-//        }
+        //        DispatchQueue.main.async { [weak self] in
+        // give up delay scroll initialAsset, do it right now in case of display cell twice
+        guard let asset = self.initialAsset                          else { return }
+        guard let item  = self.preferredAssets.firstIndex(of: asset) else { return }
+        let indexPath = IndexPath(item: item, section: 0)
+        self.collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
+        //        }
     }
 }
 
@@ -569,7 +667,7 @@ extension PKPhotoPreviewController: UICollectionViewDelegate, UICollectionViewDa
         guard let asset = asset(at: indexPath) else {
             return collectionView.dequeueReusableCell(withReuseIdentifier: "PKAssetPreviewCell", for: indexPath)
         }
-                
+        
         var cell: UICollectionViewCell
         switch asset.asset.mediaType {
         case .video:

@@ -20,6 +20,7 @@ public class PKPhotoController : UINavigationController {
     public var minimumCount             = PKPhotoConfig.default.minimumCount
     public var previewItemSpacing       = PKPhotoConfig.default.previewItemSpacing
 
+    fileprivate var pan: UIPanGestureRecognizer? = nil
     public override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -36,6 +37,68 @@ public class PKPhotoController : UINavigationController {
         
         view.backgroundColor = UIColor.white
         self.checkAuthorizationStatus { [unowned self] in self.setupViewControllers($0) }
+        
+        delegate = self
+        
+        guard let gesture = interactivePopGestureRecognizer else { return }
+        // if pan gesture is already exists, donot add it again
+        if let pan = self.pan, let gestures = gesture.view?.gestureRecognizers, gestures.contains(pan) { return }
+        let pan = UIPanGestureRecognizer(target: gesture.delegate, action: Selector(("handleNavigationTransition:")))
+        pan.delegate = self
+        gesture.view?.addGestureRecognizer(pan)
+        gesture.isEnabled = false
+        self.pan = pan
+    }
+    
+    internal let verticalTransition = PKVerticalInteractiveTransition()
+}
+
+extension PKPhotoController: UIGestureRecognizerDelegate {
+//    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+//
+//        if let gesture = pan, gesture == gestureRecognizer {
+//            if otherGestureRecognizer.isKind(of: UIScreenEdgePanGestureRecognizer.self) { return true }
+//            if let view = otherGestureRecognizer.view as? UIScrollView { return view.contentOffset.x <= 0 }
+//        }
+//        return false
+//    }
+    
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        
+        if gestureRecognizer == pan {
+            // Ignore when no view controller is pushed into navigation stack
+            guard viewControllers.count >= 2 else { return false }
+            
+            // Ignore translation.x > pop gesture offset
+            let location = gestureRecognizer.location(in: topViewController?.view)
+            guard location.x <= 50.0 else { return false }
+            
+            // Ignore pan gestrue is transitioning
+            if let transitioning = value(forKey: "_isTransitioning") as? Bool, transitioning { return false }
+        }
+
+        return true
+    }
+}
+
+extension PKPhotoController : UINavigationControllerDelegate {
+    
+    public func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: UINavigationController.Operation, from fromVC: UIViewController, to toVC: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+        
+        if case .push = operation, fromVC.isKind(of: PKPhotoCollectionController.self), toVC.isKind(of: PKPhotoPreviewController.self) {
+            return PKInteractivePushAnimation()
+        }
+        
+        if case .pop = operation, fromVC.isKind(of: PKPhotoPreviewController.self), toVC.isKind(of: PKPhotoCollectionController.self) {
+            if verticalTransition.interactiveInProgress { return PKInteractivePopAnimation(isVertical: true) }
+            return PKInteractivePopAnimation()
+        }
+        
+        return nil
+    }
+    
+    public func navigationController(_ navigationController: UINavigationController, interactionControllerFor animationController: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
+        return verticalTransition.interactiveInProgress ? verticalTransition : nil
     }
 }
 

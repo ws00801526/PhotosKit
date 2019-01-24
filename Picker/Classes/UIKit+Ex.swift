@@ -174,7 +174,6 @@ extension UIImageView {
                 if let data = $0 { self?.animate(withGIFData: data) }
             })
         }
-        
         #endif
         
         return PKPhotoManager.requestImage(for: asset) { [weak self] in self?.image = ($0 ?? placeholder) }
@@ -229,6 +228,11 @@ extension UIViewController {
     }
 }
 
+extension CGAffineTransform {
+    func translatedBy(point: CGPoint) -> CGAffineTransform {
+        return translatedBy(x: point.x, y: point.y)
+    }
+}
 
 #if GIF
 
