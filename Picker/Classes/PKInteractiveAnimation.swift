@@ -9,7 +9,7 @@
 
 import Foundation
 
-fileprivate let PKAnimationDuration: TimeInterval = 0.35
+fileprivate let PKAnimationDuration: TimeInterval = 0.3
 fileprivate let PKAnimationOffsetX: CGFloat = -100.0
 
 class PKInteractivePushAnimation : NSObject, UIViewControllerAnimatedTransitioning {

@@ -89,13 +89,16 @@ public class PKPhotoConfig {
 }
 
 public enum PKPhotoLanguage: String {
-    case system = "system"
-    case english = "en"
-    case chineseSimplified = "zh-Hans"
-    case chineseTraditional = "zh-Hant"
-    case vietnamese = "vi"
-    case japanses   = "ja"
-    case korean      = "ko"
+    
+    /// follow system language configuration
+    case system                 = "system"
+    
+    case english                = "en"
+    case vietnamese             = "vi"
+    case japanses               = "ja"
+    case korean                 = "ko"
+    case chineseSimplified      = "zh-Hans"
+    case chineseTraditional     = "zh-Hant"
 }
 
 internal extension PKPhotoConfig {

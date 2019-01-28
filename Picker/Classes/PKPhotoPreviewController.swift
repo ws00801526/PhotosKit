@@ -233,7 +233,7 @@ class PKThumbPreviewCell : PKAssetPreviewCell {
     
     
     lazy var infoLabel: UILabel = {
-        let label = UILabel(frame: CGRect(x: 10.0, y: bounds.height - 20.0, width: bounds.width - 20.0, height: 20.0))
+        let label = UILabel(frame: CGRect(x: 5.0, y: bounds.height - 20.0, width: bounds.width - 10.0, height: 20.0))
         label.font = UIFont.boldSystemFont(ofSize: 10.0)
         label.textColor = UIColor.white
         label.text = "GIF"
@@ -269,16 +269,16 @@ class PKThumbPreviewCell : PKAssetPreviewCell {
     
     override func config(with asset: PKAsset, spacing: CGFloat = PKPhotoConfig.default.previewItemSpacing) -> Void {
         imageView.setThumb(with: asset)
-        if asset.isGIF {
-            infoLabel.text = "GIF"
-            infoLabel.attributedText = nil
+        
+        if asset.asset.mediaType == .video {
             infoLabel.isHidden = false
-        } else if case .video = asset.asset.mediaType {
-            infoLabel.text = ""
             let attachment = NSTextAttachment()
             attachment.image = PKPhotoConfig.localizedImage(with: "photo_list_video")
-            attachment.bounds = CGRect(origin: CGPoint(x: 0.0, y: -1.5), size: attachment.image?.size ?? .zero)
+            let size = CGSize(width: 15.0, height: 9.0)
+            attachment.bounds = CGRect(origin: CGPoint(x: 0.0, y: -1.0), size: size)
             infoLabel.attributedText = NSAttributedString.init(attachment: attachment)
+        } else if asset.isGIF {
+            infoLabel.attributedText = NSAttributedString(string: "GIF")
             infoLabel.isHidden = false
         } else {
             infoLabel.isHidden = true

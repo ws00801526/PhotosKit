@@ -425,8 +425,8 @@ extension PKPhotoCollectionController : UICollectionViewDelegate, UICollectionVi
 
                 // refresh current cell stateUI
                 guard let index = self.album.selectedAssets.firstIndex(of: asset) else { return }
-                $0.setup(serialNumber: (index + 1))
                 $0.setup(state: .selected, multiple: nil)
+                $0.setup(serialNumber: (index + 1), duration: asset.asset.duration, isGIF: asset.isGIF)
                 $0.stateButton.stateView.showOscillatoryAnimation()
                 
                 // refresh other visiable cells state UI if needed
