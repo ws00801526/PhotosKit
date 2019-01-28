@@ -1,0 +1,47 @@
+
+// Title of buttons
+"OK"= "OK";
+"Send"= "전송";
+"Back"= "뒤로";
+"Done"= "완료";
+"Sorry"= "죄송합니다";
+"Cancel"= "취소";
+"Setting"= "설정";
+"Photos"= "사진";
+"Videos"= "동영상";
+"Preview"= "미리보기";
+"Full image"= "전체 이미지";
+
+// Message of some action response
+
+"Processing ..."= "처리하고 있습니다 ...";
+"Unknown Error Happened"= "알 수없는 오류가 발생했습니다";
+"No Photos or Videos"= "사진과 동영상이 없습니다";
+"Synchronizing photos from iCloud"= "iCloud에서 사진 동기화";
+"Can not use camera"= "카메라를 사용할 수 없습니다";
+"Can not choose both video and photo"= "비디오와 사진을 선택할 수 없습니다";
+"Can not choose both photo and GIF"= "사진과 GIF 모두를 선택할 수 없습니다";
+"Select the video when in multi state, we will handle the video as a photo"= "다중 상태시에 비디오를 선택하고 사진으로 비디오를 처리합니다";
+"Can not jump to the privacy settings page, please go to the settings page by self, thank you"= "개인 정보 설정 페이지로 이동할 수 없습니다 스스로 설정 페이지로 이동합니다, 감사합니다";
+
+"Select a maximum of % zd photos"= "최대 % zd 사진을 선택";
+"Select a minimum of % zd photos"= "최소한 % zd 사진을 선택";
+"Allow % @ to access your album in \"Settings -> Privacy -> Photos \"" = "\"설정 -> 개인 정보 -> 사진 \"에서 % @에 당신의 앨범에 대한 액세스를 허용합니다";
+"Allow % @ to access your camera in \"Settings -> Privacy -> Camera \"" = "\"설정 -> 개인 정보 -> 카메라 \"에서 % @에 당신의 카메라에 대한 액세스를 허용하십시오";
+
+// Localized title of albums
+
+"Slo-mo"= "스로모";
+"Portrait"= "초상화";
+"Screenshots"= "스크린 샷";
+"Time-lapse"= "저속";
+"Selfies"= "셀카";
+"Recently Added"= "최근 추가 된";
+"Panoramas"= "파노라마";
+"Animated"= "애니메이션";
+"Long Exposure"= "장시간 노출";
+"Camera Roll"= "카메라 롤";
+"Favorites"= "즐겨 찾기";
+"Live Photos"= "라이브 사진";
+"Videos"= "동영상";
+"Bursts"= "버스트";

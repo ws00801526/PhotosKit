@@ -94,6 +94,8 @@ public enum PKPhotoLanguage: String {
     case chineseSimplified = "zh-Hans"
     case chineseTraditional = "zh-Hant"
     case vietnamese = "vi"
+    case japanses   = "ja"
+    case korean      = "ko"
 }
 
 internal extension PKPhotoConfig {
