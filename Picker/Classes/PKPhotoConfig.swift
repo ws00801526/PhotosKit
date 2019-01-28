@@ -62,6 +62,7 @@ public class PKPhotoConfig {
     
     public var pickingRule              = PKPhotoPickingRule.multiplePhotosSingleVideo
     public var allowsPickingOrigin      = true
+    public var allowsPreviewThumb       = true
     public var allowsJumpingSetting     = true
     public var preferredDefaultAlbum    = true
     public var ignoreEmptyAlbum         = false

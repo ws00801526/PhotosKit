@@ -19,6 +19,7 @@ public class PKPhotoController : UINavigationController {
     public var maximumCount             = PKPhotoConfig.default.maximumCount
     public var minimumCount             = PKPhotoConfig.default.minimumCount
     public var previewItemSpacing       = PKPhotoConfig.default.previewItemSpacing
+    public var allowsPreviewThumb       = PKPhotoConfig.default.allowsPreviewThumb
 
     fileprivate var pan: UIPanGestureRecognizer? = nil
     public override func viewDidLoad() {
