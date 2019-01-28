@@ -2,6 +2,7 @@ use_frameworks!
 platform :ios,'9.0'
 target 'PhotosKit_Example' do
   pod 'PhotosKit', :path => '../'
+  pod 'Gifu', :git => 'git@github.com:kaishin/Gifu.git', branch: => 'master'
 
   target 'PhotosKit_Tests' do
     inherit! :search_paths

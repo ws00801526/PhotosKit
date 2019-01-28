@@ -27,6 +27,15 @@ class ViewController: UIViewController {
     }
     
     @IBAction func presentPhoto(_ sender: Any) {
+                
+        let languages = ["system", "en", "zh-Hans", "zh-Hant", "vi"]
+        let index = Int(arc4random() % 5)
+        let language = PKPhotoLanguage(rawValue: languages[index]) ?? .system
+        PKPhotoConfig.default.preferredLanguage = language
+        
+//        PKPhotoConfig.default.pickingRule = .multiplePhotosSingleVideo
+        PKPhotoConfig.default.pickingRule = .multiplePhotosVideos
+
         let controller = PKPhotoController(nibName: nil, bundle: nil)
         present(controller, animated: true, completion: nil)
     }
