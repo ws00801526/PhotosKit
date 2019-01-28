@@ -10,23 +10,12 @@
 import Photos
 
 public class PKPhotoManager {
-    
     static public let `default` = PKPhotoManager()
-    
-    func xxxx() {
-        // do nothing
-    }
-}
-
-/// Auth status of Photo Library
-public extension PKPhotoManager {
-
 }
 
 fileprivate extension PHAssetCollectionSubtype {
     static let smartAlbumRecentlyDeleted: Int = 1000000201
 }
-
 
 public   typealias AlbumClosure         = ([PKAlbum]) -> Void
 public   typealias ThumbClosure         = (UIImage?) -> Void

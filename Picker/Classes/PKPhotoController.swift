@@ -52,6 +52,13 @@ public class PKPhotoController : UINavigationController {
     }
     
     internal let verticalTransition = PKVerticalInteractiveTransition()
+    
+    
+    // methods for orientation, donot support landscape
+    
+    public override var shouldAutorotate: Bool { return true }
+    public override var supportedInterfaceOrientations: UIInterfaceOrientationMask { return .portrait }
+    public override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { return .portrait }
 }
 
 extension PKPhotoController: UIGestureRecognizerDelegate {
